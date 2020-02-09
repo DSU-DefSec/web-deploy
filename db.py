@@ -110,6 +110,11 @@ def get_admins():
     for uid, username in execute("SELECT id, username FROM lists WHERE list_name='admins'"):
         users[uid] = User(uid, username)
     return users
+
+def get_admin(username):
+    uid = execute("SELECT id FROM lists WHERE list_name='admins' and username=?",(username,))
+    return uid
+
     
 def reset():
     print("[INFO] Resetting database.")

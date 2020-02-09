@@ -44,7 +44,7 @@ def login():
     error = None
     if request.method == 'POST':
         if form.validate_on_submit():
-            uid = db.execute("SELECT id FROM lists WHERE list_name=? and username=?", ("admins", form.username.data))[0][0]
+            uid = db.get_admin(form.username.data)
             user = load_user(chr(uid))
             login_user(user)
             flask.flash('Logged in successfully!')
