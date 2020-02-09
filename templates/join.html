@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block join %}active{% endblock %}
+{% block content %}
+
+<div class="col-8 offset-2">
+    <h1>Join</h1>
+    <h5>Sign up for the DefSec vApp deployment list!</h5>
+    <br>
+    {% if error is not none %}
+        <div class="alert alert-danger">
+            <strong>{{ error }}</strong>
+        </div>
+    {% endif %}
+    <form method="POST" action="{{ url_for('join') }}">
+        {{ form.csrf_token }}
+        <div class="form-group">
+            {{ form.username.label }}
+            {{ form.username(size=32, class_="form-control", pattern="[a-zA-Z0-9\.]*", title="Must contain only alphanumerics and periods")}}
+        </div>
+        <input type="submit" class="btn btn-success" value="Join"/>
+    </form>
+</div>
+
+{% endblock %}
