@@ -1,5 +1,7 @@
 from flask_login import UserMixin
+from vcloud import vcloud
 import sqlite3 as sql
+import configparser
 db = "web-deploy.db"
 
 ####################
@@ -17,35 +19,31 @@ class User(UserMixin):
 
 
 class DataModel(object):
+
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
+
     def load(self):
         #self.lists = load_lists()
         self.admins = get_admins()
             
     def load_vcloud(self):
-        pass
-    """ 
-        cutshaw here's a class for your vcloud garbage
-        so you dont have to init it each time you run the function
-        - init vcloud
-        - store object in dm.vcloud or something
-        
-    """
+        self.vcloud = vcloud.vcloud(self.config)
+
+        self.org = self.vcloud.getOrg(self.config['Main']['Org'])
+        self.catalog = self.vcloud.getCatalog(self.config['Main']['Catalog'])
+        self.vdc = self.vcloud.getVdc(self.config['Main']['Vdc'])
+        self.role = self.org.getRole(self.config['Main']['Role'])
     
     def auth_user(self, username, password):
-        """ 
-        MICHAEL CUTSHAW MAGIC VCLOUD AUTH CODE HERE
-        use dm.vcloud
-        return True if valid username/pw combo
-        """
-        return True
-        
+        return self.vcloud.checkAuth(username, password)
+
     def check_user(self, username):
-        """ 
-        MICHAEL CUTSHAW MAGIC VCLOUD CODE HERE
-        use dm.vcloud
-        return True if valid user
-        """
-        return True
+        if self.org.getUser(username) is None:
+            return False
+        else:
+            return True
 
 
 #############################
@@ -113,7 +111,7 @@ def get_admins():
 
 def get_admin(username):
     uid = execute("SELECT id FROM lists WHERE list_name='admins' and username=?",(username,))
-    return uid
+    return uid[0][0]
 
     
 def reset():

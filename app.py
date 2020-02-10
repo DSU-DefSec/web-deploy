@@ -5,18 +5,23 @@ from flask import Flask, render_template, request, redirect, url_for
 from urllib.parse import urlparse, urljoin
 from threading import Thread
 from forms import *
+import configparser
 import flask
 import sys
 import db
 
+config_name = "web-deploy.conf"
+config = configparser.ConfigParser()
+config.read(config_name)
+
 app = Flask(__name__)
-app.secret_key = 'this is a secret!!!'
+app.secret_key = config['Web-Deploy']['Secret']
 login_manager = LoginManager()
 login_manager.init_app(app)
 
 # Default List!
-list_default = "defsec"
-dm = db.DataModel()
+list_default =  config['Web-Deploy']['Default_List']
+dm = db.DataModel(config)
 dm.load_vcloud()
 
 @login_manager.user_loader
@@ -156,7 +161,7 @@ def tasks():
     error = None
     if request.method == 'POST':
         if form.validate_on_submit():
-            # add admin to list if valid vcloud auth
+            # add Task? to list if valid vcloud auth
             pass
         else:
             error = "Your task couldn't be added successfully :((((((((((("
@@ -169,8 +174,8 @@ if __name__ == '__main__':
     
     # Nuke DB with ./app.py nuke
     if "nuke" in sys.argv:
-        db.reset();
-        db.add_list("admins", "shane.donahue"); # hardcoded admin. eat my shorts cutshaw
+        db.reset()
+        db.add_list("admins", config['Web-Deploy']['Init_Admin'])
 
     # spin up thread for scheduler
     # scheduler function = thread
