@@ -2,7 +2,11 @@ from flask_login import UserMixin
 from vcloud import vcloud
 import sqlite3 as sql
 import configparser
+
 db = "web-deploy.db"
+config_name = "web-deploy.conf"
+config = configparser.ConfigParser()
+config.read(config_name)
 
 ####################
 # DATA MODEL CLASS #
@@ -29,11 +33,16 @@ class DataModel(object):
         self.admins = get_admins()
             
     def load_vcloud(self):
+        print("[VCLOUD] Authenticating...")
         self.vcloud = vcloud.vcloud(self.config)
 
+        print("[VCLOUD] Retrieving Org...")
         self.org = self.vcloud.getOrg(self.config['Main']['Org'])
+        print("[VCLOUD] Retrieving Catalog...")
         self.catalog = self.vcloud.getCatalog(self.config['Main']['Catalog'])
+        print("[VCLOUD] Retrieving VDC...")
         self.vdc = self.vcloud.getVdc(self.config['Main']['Vdc'])
+        print("[VCLOUD] Retrieving Role...")
         self.role = self.org.getRole(self.config['Main']['Role'])
     
     def auth_user(self, username, password):
@@ -62,7 +71,9 @@ def execute(cmd, values=None, one=None):
             return cur.fetchone()
         return cur.fetchall()
         
-        
+def get_default():
+    return(config['Web-Deploy']['Default_list'])
+    
 def drop_list(list_name):
     print("[INFO] Removing list", list_name)
     execute("DELETE FROM `lists` WHERE list_name=?", (list_name,))
@@ -112,10 +123,9 @@ def get_admins():
 def get_admin(username):
     uid = execute("SELECT id FROM lists WHERE list_name='admins' and username=?",(username,))
     return uid[0][0]
-
     
 def reset():
-    print("[INFO] Resetting database.")
+    print("[INFO] Resetting database...")
     execute("DROP TABLE IF EXISTS `lists`;")
     execute("""CREATE TABLE `lists` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT,

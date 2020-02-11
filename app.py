@@ -22,6 +22,7 @@ login_manager.init_app(app)
 # Default List!
 list_default =  config['Web-Deploy']['Default_List']
 dm = db.DataModel(config)
+print("[INFO] Loading vcloud object...")
 dm.load_vcloud()
 
 @login_manager.user_loader
@@ -72,7 +73,6 @@ def logout():
 @app.route('/join', methods=['GET', 'POST'])
 def join():
     """
-    1. join
       - Allows users to join the default list
       - Takes a username and checks it against the list
       - Will run Org.getUser()
@@ -80,29 +80,39 @@ def join():
     form = JoinForm(dm, list_default)
     error = None
     if request.method == 'POST':
-        if form.validate_on_submit():
-            flask.flash("User added to list!")
-        else:
-            error = "Error! User is invalid or already on list."
+        if "username" in request.form:
+            list_data = db.get_list(list_default)
+            for user in list_data:
+                if user == request.form["username"]:
+                    error = "Error! User is already on list."
+                    return render_template('join.html', form=form, error=error)
+            if form.validate_on_submit():
+                flask.flash("User added to list!")
+            else:
+                error = "Error! User is invalid."
+
     return render_template('join.html', form=form, error=error)
 
 @app.route('/lists', methods=['GET', 'POST'])
 @login_required
 def lists():
     """
-    2. list
       - Allows for the editing of userlists (removing/adding of users)
-      - Allows for the creation of lists other than the main one (optional)
+      - Allows for the creation of lists other than the main one
       - Allows for adding, removing, and exporting lists and users
     """
     error = None
     list_data = None
     list_selected = list_default
+    
+    # If POST, --> Add, Delete, Export
     if request.method == 'POST':
         if "list_name" in request.form:
             list_selected = request.form["list_name"]
             if "action" in request.form:
                 action = request.form["action"]
+                
+                # Adding user or list
                 if action == "Add":
                     if "username" in request.form:
                         form = JoinForm(dm, list_selected)
@@ -113,6 +123,8 @@ def lists():
                     else:
                         db.create_list(list_selected)
                         flask.flash("List " + list_selected + " added!")
+                        
+                # Deleting user or list
                 elif action == "Delete":
                     if "username" in request.form:
                         db.delete_list(list_selected, request.form["username"])
@@ -124,6 +136,8 @@ def lists():
                             db.drop_list(list_selected)
                             flask.flash("Dropped list " + list_selected + "!")
                             list_selected = list_default
+                            
+                # Export list as plaintext
                 elif action == "Export":
                     list_data = db.get_list(list_selected)
                     list_string = '<br>'.join(list_data)
@@ -131,33 +145,38 @@ def lists():
             list_data = db.get_list(list_selected)
         else:
             error = "You need to supply a list if you're going to POST this page."
+            
+    # If GET, display a list
     else:
         if "list" in request.args:
             list_selected = request.args["list"]
         list_data = db.get_list(list_selected)
+        
+    # Grab default list if list_data is None
     if list_data == None:
         error = "The specified list doesn't exist."
         list_selected = list_default      
         list_data = db.get_list(list_selected)
+
     lists = db.get_lists(list_default)
     form = JoinForm(dm, list_selected)
+    
     return render_template('lists.html', form=form, error=error, list_name=list_selected, list_data=list_data, lists=lists)
 
-@app.route('/tasks', methods=['GET', 'POST'])
+@app.route('/deploy', methods=['GET', 'POST'])
 @login_required
-def tasks():
+def deploy():
     """
-    3. task
       - Allows for creation of timed deploy tasks
       - Needs to choose a time, userlist and vapp
       - Will use Catalog.getTemplates() (validate template immediately)
 
     """
-    form = TaskForm(dm)
+    form = DeployForm(dm)
     error = None
     tasks = []
     # sort tasks by time
-    task_name = "idk, lol"
+    task_name = "Create a new task..."
     error = None
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -167,12 +186,21 @@ def tasks():
             error = "Your task couldn't be added successfully :((((((((((("
     else:
         pass
-    return render_template('tasks.html', form=form, tasks=tasks, task_name=task_name, error=error)
+    return render_template('deploy.html', form=form, tasks=tasks, task_name=task_name, error=error)
 
+@app.route('/renew', methods=['GET', 'POST'])
+@login_required
+def renew():
+    """
+      - Allows for renewal of leases every X minutes
+      - NEeds to choose a time, renewal period, userlist and vapp
+
+    """
+    return "todo"
     
 if __name__ == '__main__':
     
-    # Nuke DB with ./app.py nuke
+    # Reset/recreate DB with ./app.py nuke
     if "nuke" in sys.argv:
         db.reset()
         db.add_list("admins", config['Web-Deploy']['Init_Admin'])

@@ -31,8 +31,11 @@
                         <li class="nav-item {% block lists %}{% endblock %}">
                             <a class="nav-link" href="{{ url_for('lists') }}">Lists</a>
                         </li>
-                        <li class="nav-item {% block tasks %}{% endblock %}">
-                            <a class="nav-link" href="{{ url_for('tasks') }}">Tasks</a>
+                        <li class="nav-item {% block deploy %}{% endblock %}">
+                            <a class="nav-link" href="{{ url_for('deploy') }}">Deploy</a>
+                        </li>
+                        <li class="nav-item {% block renew %}{% endblock %}">
+                            <a class="nav-link" href="{{ url_for('renew') }}">Renew</a>
                         </li>
                     {% endif %}
                 </ul>
