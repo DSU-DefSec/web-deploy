@@ -3,7 +3,7 @@
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required
 from flask import Flask, render_template, request, redirect, url_for
 from urllib.parse import urlparse, urljoin
-from threading import Thread
+from scheduler import Scheduler
 from forms import *
 import configparser
 import flask
@@ -32,16 +32,16 @@ def load_user(uid):
     if uid in dm.admins:
         return dm.admins[uid]
     return None
-    
+
 @login_manager.unauthorized_handler
 def unauthorized():
     return redirect(flask.url_for('login'))
-    
+
 def is_safe_url(target):
     ref_url = urlparse(flask.request.host_url)
     test_url = urlparse(urljoin(flask.request.host_url, target))
     return test_url.scheme in ('http', 'https') and \
-           ref_url.netloc == test_url.netloc  
+           ref_url.netloc == test_url.netloc
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -104,14 +104,14 @@ def lists():
     error = None
     list_data = None
     list_selected = list_default
-    
+
     # If POST, --> Add, Delete, Export
     if request.method == 'POST':
         if "list_name" in request.form:
             list_selected = request.form["list_name"]
             if "action" in request.form:
                 action = request.form["action"]
-                
+
                 # Adding user or list
                 if action == "Add":
                     if "username" in request.form:
@@ -123,7 +123,7 @@ def lists():
                     else:
                         db.create_list(list_selected)
                         flask.flash("List " + list_selected + " added!")
-                        
+
                 # Deleting user or list
                 elif action == "Delete":
                     if "username" in request.form:
@@ -136,7 +136,7 @@ def lists():
                             db.drop_list(list_selected)
                             flask.flash("Dropped list " + list_selected + "!")
                             list_selected = list_default
-                            
+
                 # Export list as plaintext
                 elif action == "Export":
                     list_data = db.get_list(list_selected)
@@ -145,22 +145,22 @@ def lists():
             list_data = db.get_list(list_selected)
         else:
             error = "You need to supply a list if you're going to POST this page."
-            
+
     # If GET, display a list
     else:
         if "list" in request.args:
             list_selected = request.args["list"]
         list_data = db.get_list(list_selected)
-        
+
     # Grab default list if list_data is None
     if list_data == None:
         error = "The specified list doesn't exist."
-        list_selected = list_default      
+        list_selected = list_default
         list_data = db.get_list(list_selected)
 
     lists = db.get_lists(list_default)
     form = JoinForm(dm, list_selected)
-    
+
     return render_template('lists.html', form=form, error=error, list_name=list_selected, list_data=list_data, lists=lists)
 
 @app.route('/deploy', methods=['GET', 'POST'])
@@ -180,11 +180,11 @@ def deploy():
     error = None
     if request.method == 'POST':
         if form.validate_on_submit():
-            # add Task? to list if valid vcloud auth
-            pass
+            flask.flash("Task  " + request.form["name"] + " added!")
         else:
-            error = "Your task couldn't be added successfully :((((((((((("
+            error = "Your task couldn't be added successfully :("
     else:
+        #what is this if statement for?
         pass
     return render_template('deploy.html', form=form, tasks=tasks, task_name=task_name, error=error)
 
@@ -197,17 +197,16 @@ def renew():
 
     """
     return "todo"
-    
+
 if __name__ == '__main__':
-    
+
     # Reset/recreate DB with ./app.py nuke
     if "nuke" in sys.argv:
         db.reset()
         db.add_list("admins", config['Web-Deploy']['Init_Admin'])
 
-    # spin up thread for scheduler
-    # scheduler function = thread
-    # thread.start
-    
-    app.run()
+    # start scheduler
+    s = Scheduler(dm)
+    s.start()
 
+    app.run()
