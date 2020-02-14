@@ -5,6 +5,7 @@ from flask import Flask, render_template, request, redirect, url_for
 from urllib.parse import urlparse, urljoin
 from scheduler import Scheduler
 from forms import *
+from json import loads, dumps
 import configparser
 import flask
 import sys
@@ -19,7 +20,6 @@ app.secret_key = config['Web-Deploy']['Secret']
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-# Default List!
 list_default =  config['Web-Deploy']['Default_List']
 dm = db.DataModel(config)
 print("[INFO] Loading vcloud object...")
@@ -105,7 +105,7 @@ def lists():
     list_data = None
     list_selected = list_default
 
-    # If POST, --> Add, Delete, Export
+    # If POST, Add, Delete, Export
     if request.method == 'POST':
         if "list_name" in request.form:
             list_selected = request.form["list_name"]
@@ -174,26 +174,64 @@ def deploy():
     """
     form = DeployForm(dm)
     error = None
-    tasks = []
-    # sort tasks by time
     task_name = "Create a new task..."
+    task_selected = ("", "", "", ("", ""), "")
     error = None
+    
+    # If POST, Add, Edit, or Delete
     if request.method == 'POST':
-        if form.validate_on_submit():
-            flask.flash("Task  " + request.form["name"] + " added!")
+        if "action" in request.form:
+            action = request.form["action"]
+            (error, result) = form.validate_on_submit()
+            if "name" in request.form and "vapp" in request.form:
+                task_selected = ("", "", request.form["name"], {"vapp_name": request.form["vapp"]}, "")
+            if result and action == "Add":
+                error = form.add_valid_task() 
+                if not error:
+                    task_name = request.form["name"]
+                    flask.flash("Task " + task_name + " added!")
+            elif result and action == "Update":
+                error = form.edit_valid_task()
+                if not error:
+                    task_name = request.form["name"]
+                    flask.flash("Task " + task_name + " edited!")
+            elif action == "Delete":
+                if "name" in request.form:
+                    error = db.delete_task(request.form["name"])
+                    if not error:
+                        flask.flash("Task deleted!")
+
+    # Grab updated task list after possible post
+    tasks = db.get_tasks()
+    task_queue, task_history = [], []
+    for task in tasks:
+        if task[4] == 0:
+            task_queue.append(task)
         else:
-            error = "Your task couldn't be added successfully :("
-    else:
-        #what is this if statement for?
-        pass
-    return render_template('deploy.html', form=form, tasks=tasks, task_name=task_name, error=error)
+            if len(task_history) <= 5:
+                task_history.append(task)
+            else:
+                db.delete_task(task[2])
+            
+    # If get, either display task requested or new deploy form
+    if "task" in request.args or task_name != "Create a new task...":
+        if "task" in request.args:
+            task_name = request.args["task"]
+        for task in tasks:
+            if task_name == task[2]:
+                task_selected = task
+        if task_selected[0] == "":
+            task_name = "Create a new task..."
+            error = "Sorry, specified task does not exist."
+
+    return render_template('deploy.html', form=form, task_queue=task_queue, task_history = task_history, task_name=task_name, task_selected=task_selected, error=error)
 
 @app.route('/renew', methods=['GET', 'POST'])
 @login_required
 def renew():
     """
       - Allows for renewal of leases every X minutes
-      - NEeds to choose a time, renewal period, userlist and vapp
+      - Needs to choose a time, renewal period, userlist and vapp
 
     """
     return "todo"
@@ -210,3 +248,4 @@ if __name__ == '__main__':
     s.start()
 
     app.run()
+    

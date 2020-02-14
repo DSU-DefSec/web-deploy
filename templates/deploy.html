@@ -10,49 +10,105 @@
 
 <div class="row">
 
-    <div class="col-4 col-md-3 offset-md-1">
-        <h2>Queue</h2>
+    <div class="col-5 col-md-3 offset-md-1 mt-3 mr-2">
+        <h3>Queue</h3>
         <div class="list-group">
-            {% for task in tasks %}
-                <a href="{{ url_for('deploy') }}?task={{task}}" class="list-group-item list-group-item-action {% if name == list_name %} active {% endif %}">
-                {{ task }}
-                </a>
-            {% endfor %}
+            {% if task_queue %}
+                {% for task in task_queue %}
+                    <a href="{{ url_for('deploy') }}?task={{ task[2] }}" class="list-group-item list-group-item-action {% if task[2] == task_selected[2] %} active {% endif %}">
+                    <b>{{ task[2] }}</b> <i>({{ task[0] }})</i>
+                    </a>
+                {% endfor %}
+            {% else %}
+                No tasks are in the queue.
+            {% endif %}
         </div>
-        
-    </div>
 
-    <div class="col-7 offset-1 mt-2">
-    
-        <!-- Deploy name and delete Button --> 
-        {% if task_name != "Create a new task..." %} 
-        <form method="POST" action="{{ url_for('deploy') }}">
-            <input type="hidden" id="list_name" name="list_name" value="{{ task_name }}"/>
-            <input type="submit" style="margin-top:10px;" class="btn btn-sm bg-danger text-white" id="action" name="action" value="Delete"/>
+        <br>
+        <h3>History</h3>
+        <div class="list-group">
+            {% if task_history %}
+                {% for task in task_history %}
+                    <a href="{{ url_for('deploy') }}?task={{ task[2] }}" class="list-group-item list-group-item-action {% if task[2] == task_selected[2] %} active {% endif %}">
+                    <b>{{ task[2] }}</b> <i>({{ task[0] }})</i>
+                    {% if task[4] == 1 %}
+                        <i data-feather="check"></i>
+                    {% elif task[4] == 2 %}
+                        <i data-feather="x"></i>
+                    {% else %}
+                        <i data-feather="help-circle"></i>
+                    {% endif %}
+                    </a>
+                {% endfor %}
+            {% else %}
+                No tasks have been run.
+            {% endif %}
+        </div>
+        <!-- Task add -->
+        <form class="mt-2" method="GET" action="{{ url_for('deploy') }}">
+            <input type="submit" class="btn btn-sm btn-success" value="New Task">
         </form>
         <br>
-        {% endif %}
-        <h1><b>{{ task_name }}</b></h1>
+    </div>
+
+    <div class="col-7 mt-2">
+    
+        <!-- Deploy name and Delete button --> 
+        <div class="form-group">
+            <div class="row">
+                <div class="col">
+                    <h1><b>{{ task_name }}</b></h1>
+                </div>
+                {% if task_selected[0] and task_selected[4] == 0 %}
+                <div class="col">
+                    <form method="POST" action="{{ url_for('deploy') }}">
+                        <input type="hidden" id="name" name="name" value="{{ task_selected[2] }}"/>
+                        <input type="submit" style="margin-top:10px;" class="btn btn-sm bg-danger text-white" id="action" name="action" value="Delete"/>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
         <br>
         
         <!-- Deploy add form -->
         <form method="POST" action="{{ url_for('deploy') }}">
+        
             {{ form.name.label }}
-            {{ form.name(size=32, class_="form-control form-control-sm", pattern="[a-zA-Z0-9]*", title="Must contain only alphanumerics") }}
+            {% if not task_selected[0] %}
+                {{ form.name(size=32, class_="form-control form-control-sm", pattern="[a-zA-Z0-9]*", title="Must contain only alphanumerics", value=task_selected[2]) }}
+            {% else %}
+                {{ form.name(size=32, class_="form-control form-control-sm", disabled="disabled", pattern="[a-zA-Z0-9]*", title="Must contain only alphanumerics", value=task_selected[2]) }}
+            {% endif %}
             <br>
             {{ form.vapp.label }}
-            {{ form.vapp(class_="form-control form-control-sm") }}
+            {{ form.vapp(class_="form-control form-control-sm", value=task_selected[3]["vapp_name"]) }}
             <br>
             {{ form.deploy_time.label }}
-            {{ form.deploy_time(class_="form-control form-control-sm") }}
+            {% if task_selected[0] %}
+                {{ form.deploy_time(class_="form-control form-control-sm",  value=task_selected[0]) }}
+            {% else %}
+                {{ form.deploy_time(class_="form-control form-control-sm") }}
+            {% endif %}
             <br>
+            {% if task_selected[0] %}
+                {% if task_selected[4] == 0 %}
+                    Current list to deploy to is <b>{{ task_selected[3]["list"] }}</b>.
+                {% else %}
+                    vApp was deployed to <b>{{ task_selected[3]["list"] }}</b>.
+                {% endif %}
+                <br>
+            {% endif %}
             {{ form.deploy_list.label }}
             {{ form.deploy_list(class_="form-control form-control-sm") }}
-            <br>
-            <input type="submit" class="btn btn-sm btn-success" id="action" name="action" value="Add"/>
+            {% if not task_selected[0] %}     
+                <br>
+                <input type="submit" class="btn btn-sm btn-success" id="action" name="action" value="Add"/>
+            {% elif task_selected[4] == 0 %}
+                <br>
+                <input type="submit" class="btn btn-sm btn-success" id="action" name="action" value="Update"/>  
+            {% endif %}
         </form>
-        
-        data about task
         
     </div>
 </div>

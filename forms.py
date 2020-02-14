@@ -36,8 +36,9 @@ class JoinForm(FlaskForm):
 
     def validate(self):
         #this should prob be done using regexes at some point
+        # if it aint broke...
         for c in self.username.data:
-            if not c == "." and not c.isalnum():
+            if c != "." and not c.isalnum():
                 return False
 
         if not self.dm.check_user(self.username.data):
@@ -59,26 +60,46 @@ class DeployForm(FlaskForm):
     def __init__(self, dm):
         super().__init__()
         self.dm = dm
-
-    def validate(self):
+        
+    def parse_data(self):
+        error = None
         for c in self.name.data:
-            if not c == "_" and not c == " " and not c.isalnum():
-                return False
+            if c != "_" and c != " " and not c.isalnum():
+                error = "Task name validation failed. Only a-zA-Z_ allowed."
+                return (error, False)
         
         for c in self.vapp.data:
-            if not c == "_" and not c == " " and not c.isalnum():
-                return False
+            if c != "_" and c != " " and c != "." and c != "-" and not c.isalnum():
+                error = "vApp name validation failed. Only a-zA-Z_-. allowed."
+                return (error, False)
 
         if not self.dm.check_vapp(self.vapp.data):
-            return False
+            error = "vApp template validation failed. Did you type the template name correctly?"
+            return (error, False)
+                
+        if  self.deploy_time.data < datetime.now() - timedelta(minutes=5):
+            error = "Datetime verification failed."
+            return (error, False)
+            
+        return (error, True)
 
+    def validate(self):
+        print("[DEPLOY] Deploy request intitiated...")
+        return self.parse_data()
+            
+    def add_valid_task(self):
+        error = None
         for task in db.get_tasks():
             if self.name.data == task[2]:
-                return False
-        if  self.deploy_time.data < datetime.now() - timedelta(minutes=5):
-            return False
+                error = "Deploying task failed, already in database."
+                return error
+        options = dumps({'vapp_name': self.vapp.data, 'list': self.deploy_list.data})
+        db.add_task(self.deploy_time.data, 0, self.name.data, options)
+        return error
+        
+    def edit_valid_task(self):
+        error = None
+        options = dumps({'vapp_name': self.vapp.data, 'list': self.deploy_list.data})
+        db.edit_task(self.deploy_time.data, 0, self.name.data, options)
+        return error
 
-        options = dumps({'vapp_name':self.vapp.data, 'list':self.deploy_list.data})
-        db.add_task(self.deploy_time.data, 0, self.name.data, options )
-        # taskform yayeeet
-        return True

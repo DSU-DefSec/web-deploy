@@ -3,11 +3,9 @@ from vcloud import vcloud
 import sqlite3 as sql
 import configparser
 from multiprocessing import Pool
+import json
 
 db = "web-deploy.db"
-config_name = "web-deploy.conf"
-config = configparser.ConfigParser()
-config.read(config_name)
 
 ####################
 # DATA MODEL CLASS #
@@ -30,7 +28,6 @@ class DataModel(object):
         self.config = config
 
     def load(self):
-        #self.lists = load_lists()
         self.admins = get_admins()
 
     def load_vcloud(self):
@@ -62,7 +59,7 @@ class DataModel(object):
 
     def check_vapp(self, vapp_name):
         templates = self.catalog.getTemplates(filter=vapp_name)
-        if templates is None:
+        if not templates:
             return False
         else:
             return True
@@ -72,8 +69,8 @@ class DataModel(object):
         if templates is not None:
             template = templates[0]
         else:
-            print(f"[ERR] vApp {vapp_name} not found, dying...")
-            return 1
+            print("[ERROR] vApp", vapp_name, "not found, dying...")
+            return(1)
         
         resolved_users = []
         for username in usernames:
@@ -100,14 +97,6 @@ class DataModel(object):
             print(f"[INFO] {user.name}_{template.name} deployed successfully deployed to {user.name}")
 
 
-        
-
-            
-
-        
-
-
-
 #############################
 # HUGE LIST OF DB FUNCTIONS #
 # IT'S SO OOP(tm) IT HURTS  #
@@ -125,6 +114,9 @@ def execute(cmd, values=None, one=None):
         return cur.fetchall()
 
 def get_default():
+    config_name = "web-deploy.conf"
+    config = configparser.ConfigParser()
+    config.read(config_name)
     return(config['Web-Deploy']['Default_list'])
 
 def drop_list(list_name):
@@ -167,12 +159,12 @@ def get_list(list_name):
         list_data = None
     return list_data
 
-def add_task(time, type, name, option):
+def add_task(time, task_type, name, option):
     print("[INFO] Adding task: ", name)
-    execute("INSERT INTO `tasks` ('time', 'type', 'name', 'option', 'ran') VALUES (?, ?, ?, ?, ?)", (time, type, name, option, False))
+    execute("INSERT INTO `tasks` ('time', 'type', 'name', 'option', 'ran') VALUES (?, ?, ?, ?, ?)", (time, task_type, name, option, False))
 
 def get_top_task():
-    tasks_data = execute("SELECT time, type, name, option, ran FROM tasks where ran=0 ORDER BY time ")
+    tasks_data = execute("SELECT time, type, name, option, ran FROM tasks where ran=0 ORDER BY time")
     if len(tasks_data) > 0:
         return tasks_data[0]
     else:
@@ -187,12 +179,14 @@ def setran_task(name):
     execute("UPDATE tasks set ran=1 where name=?", (name,))
 
 def get_tasks():
-    tasks_data = execute("SELECT time, type, name, option, ran FROM tasks ORDER BY time")
-    if len(tasks_data) > 0:
-        return tasks_data
-    else:
-        return []
-
+    tasks = execute("SELECT time, type, name, option, ran FROM tasks ORDER BY time")
+    for i, task in enumerate(tasks):
+        tasks[i] = (task[0], task[1], task[2], json.loads(task[3]), task[4])
+    return tasks
+    
+def edit_task(time, task_type, task_name, option):
+    print("[INFO] Updating task info for", task_name)
+    execute("UPDATE `tasks` SET 'time'=?, 'type'=?, 'option'=? WHERE name=?", (time, task_type, option, task_name))
 
 def delete_task(task_name):
     print("[INFO] Removing task", task_name)
@@ -218,9 +212,10 @@ def reset():
             );""")
     execute("DROP TABLE IF EXISTS `tasks`;")
     execute("""CREATE TABLE `tasks` (
-                `time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                `time` DATETIME,
                 `type` INTEGER,
                 `name` VARCHAR(255),
                 `option` VARCHAR(255),
                 `ran` BOOL
             );""")
+            
