@@ -177,7 +177,7 @@ def deploy():
     task_name = "Create a new task..."
     task_selected = ("", "", "", ("", ""), "")
     error = None
-    
+
     # If POST, Add, Edit, or Delete
     if request.method == 'POST':
         if "action" in request.form:
@@ -186,7 +186,7 @@ def deploy():
             if "name" in request.form and "vapp" in request.form:
                 task_selected = ("", "", request.form["name"], {"vapp_name": request.form["vapp"]}, "")
             if result and action == "Add":
-                error = form.add_valid_task() 
+                error = form.add_valid_task()
                 if not error:
                     task_name = request.form["name"]
                     flask.flash("Task " + task_name + " added!")
@@ -212,7 +212,7 @@ def deploy():
                 task_history.append(task)
             else:
                 db.delete_task(task[2])
-            
+
     # If get, either display task requested or new deploy form
     if "task" in request.args or task_name != "Create a new task...":
         if "task" in request.args:
@@ -248,4 +248,3 @@ if __name__ == '__main__':
     s.start()
 
     app.run()
-    

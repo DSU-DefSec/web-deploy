@@ -50,24 +50,27 @@ class JoinForm(FlaskForm):
 class DeployForm(FlaskForm):
     name = StringField('Name', validators=[InputRequired()])
     vapp = StringField('vApp Template', validators=[InputRequired()])
-    deploy_time = DateTimeField('Deployment Time', default=datetime.now(), validators=[InputRequired()])
-    lists = db.get_lists(db.get_default())
-    deploy_choices = []
-    for list_name in lists.keys():
-        deploy_choices.append((list_name, list_name))
-    deploy_list = SelectField('List', choices=deploy_choices, validators=[InputRequired()], default=db.get_default())
+    deploy_time = DateTimeField('Deployment Time', default=datetime.now, validators=[InputRequired()])
+    deploy_list = SelectField('List', choices=[], validators=[InputRequired()], default=db.get_default())
 
     def __init__(self, dm):
         super().__init__()
+        lists = db.get_lists(db.get_default())
+        deploy_choices = []
+        for list_name in lists.keys():
+            deploy_choices.append((list_name, list_name))
+        self.deploy_list.choices = deploy_choices
+        # self.deploy_time.default = datetime.now()
+        # self.deploy_list.process()
         self.dm = dm
-        
+
     def parse_data(self):
         error = None
         for c in self.name.data:
             if c != "_" and c != " " and not c.isalnum():
                 error = "Task name validation failed. Only a-zA-Z_ allowed."
                 return (error, False)
-        
+
         for c in self.vapp.data:
             if c != "_" and c != " " and c != "." and c != "-" and not c.isalnum():
                 error = "vApp name validation failed. Only a-zA-Z_-. allowed."
@@ -76,17 +79,17 @@ class DeployForm(FlaskForm):
         if not self.dm.check_vapp(self.vapp.data):
             error = "vApp template validation failed. Did you type the template name correctly?"
             return (error, False)
-                
+
         if  self.deploy_time.data < datetime.now() - timedelta(minutes=5):
             error = "Datetime verification failed."
             return (error, False)
-            
+
         return (error, True)
 
     def validate(self):
         print("[DEPLOY] Deploy request intitiated...")
         return self.parse_data()
-            
+
     def add_valid_task(self):
         error = None
         for task in db.get_tasks():
@@ -96,10 +99,9 @@ class DeployForm(FlaskForm):
         options = dumps({'vapp_name': self.vapp.data, 'list': self.deploy_list.data})
         db.add_task(self.deploy_time.data, 0, self.name.data, options)
         return error
-        
+
     def edit_valid_task(self):
         error = None
         options = dumps({'vapp_name': self.vapp.data, 'list': self.deploy_list.data})
         db.edit_task(self.deploy_time.data, 0, self.name.data, options)
         return error
-
