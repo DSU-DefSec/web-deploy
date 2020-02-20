@@ -179,7 +179,7 @@ def setran_task(name):
     execute("UPDATE tasks set ran=1 where name=?", (name,))
 
 def get_tasks():
-    tasks = execute("SELECT time, type, name, option, ran FROM tasks ORDER BY time")
+    tasks = execute("SELECT time, type, name, option, ran FROM tasks ORDER BY time DESC")
     for i, task in enumerate(tasks):
         tasks[i] = (task[0], task[1], task[2], json.loads(task[3]), task[4])
     return tasks

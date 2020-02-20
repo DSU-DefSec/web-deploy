@@ -79,14 +79,28 @@
                 {{ form.name(size=32, class_="form-control form-control-sm", pattern="[a-zA-Z0-9]*", title="Must contain only alphanumerics", value=task_selected[2]) }}
             {% else %}
                 {{ form.name(size=32, class_="form-control form-control-sm", disabled="disabled", pattern="[a-zA-Z0-9]*", title="Must contain only alphanumerics", value=task_selected[2]) }}
+            <input type="hidden" value="{{ task_selected[2] }}" name="name" id="name">
             {% endif %}
+            
             <br>
             {{ form.vapp.label }}
-            {{ form.vapp(class_="form-control form-control-sm", value=task_selected[3]["vapp_name"]) }}
+             {% if task_selected[0] %}
+                {% if task_selected[4] == 0 %}
+                    {{ form.vapp(class_="form-control form-control-sm", value=task_selected[3]["vapp_name"]) }}
+                {% else %}
+                    {{ form.vapp(class_="form-control form-control-sm",  value=task_selected[0], disabled="disabled") }}
+                {% endif %}
+            {% else %}
+                {{ form.vapp(class_="form-control form-control-sm") }}
+            {% endif %}
             <br>
             {{ form.deploy_time.label }}
             {% if task_selected[0] %}
-                {{ form.deploy_time(class_="form-control form-control-sm",  value=task_selected[0]) }}
+                {% if task_selected[4] == 0 %}
+                    {{ form.deploy_time(class_="form-control form-control-sm",  value=task_selected[0]) }}
+                {% else %}
+                    {{ form.deploy_time(class_="form-control form-control-sm",  value=task_selected[0], disabled="disabled") }}
+                {% endif %}
             {% else %}
                 {{ form.deploy_time(class_="form-control form-control-sm") }}
             {% endif %}
@@ -100,7 +114,15 @@
                 <br>
             {% endif %}
             {{ form.deploy_list.label }}
-            {{ form.deploy_list(class_="form-control form-control-sm") }}
+            {% if task_selected[0] %}
+                {% if task_selected[4] == 0 %}
+                    {{ form.deploy_list(class_="form-control form-control-sm",  value=task_selected[0]) }}
+                {% else %}
+                    {{ form.deploy_list(class_="form-control form-control-sm",  value=task_selected[0], disabled="disabled") }}
+                {% endif %}
+            {% else %}
+                {{ form.deploy_list(class_="form-control form-control-sm") }}
+            {% endif %}
             {% if not task_selected[0] %}     
                 <br>
                 <input type="submit" class="btn btn-sm btn-success" id="action" name="action" value="Add"/>

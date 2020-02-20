@@ -200,6 +200,8 @@ def deploy():
                     error = db.delete_task(request.form["name"])
                     if not error:
                         flask.flash("Task deleted!")
+            else:
+                task_name = request.form["name"]
 
     # Grab updated task list after possible post
     tasks = db.get_tasks()
