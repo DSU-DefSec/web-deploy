@@ -169,6 +169,9 @@ def get_top_task():
         return tasks_data[0]
     else:
         return []
+         
+def get_deploys():
+    return get_tasks('0')
 
 def expire_task(name):
     print("[INFO] Expiring task: ", name)
@@ -178,8 +181,11 @@ def setran_task(name):
     print("[INFO] Set running on task: ", name)
     execute("UPDATE tasks set ran=1 where name=?", (name,))
 
-def get_tasks():
-    tasks = execute("SELECT time, type, name, option, ran FROM tasks ORDER BY time DESC")
+def get_tasks(task_type=None):
+    if task_type:
+        tasks = execute("SELECT time, type, name, option, ran FROM tasks WHERE type=? ORDER BY time DESC", (task_type,))
+    else:
+        tasks = execute("SELECT time, type, name, option, ran FROM tasks ORDER BY time DESC")
     for i, task in enumerate(tasks):
         tasks[i] = (task[0], task[1], task[2], json.loads(task[3]), task[4])
     return tasks

@@ -204,13 +204,13 @@ def deploy():
                 task_name = request.form["name"]
 
     # Grab updated task list after possible post
-    tasks = db.get_tasks()
+    tasks = db.get_deploys()
     task_queue, task_history = [], []
     for task in tasks:
         if task[4] == 0:
             task_queue.append(task)
         else:
-            if len(task_history) <= 5:
+            if len(task_history) < 5:
                 task_history.append(task)
             else:
                 db.delete_task(task[2])

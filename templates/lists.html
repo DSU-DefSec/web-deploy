@@ -10,7 +10,7 @@
 
 <div class="row">
 
-    <div class="col-4 col-md-3 offset-md-1">
+    <div class="col-12 col-md-3 offset-md-1 mt-3 mr-2">
         <div class="list-group">
             {% for name in lists.keys() %}
                 <a href="{{ url_for('lists') }}?list={{name}}" class="list-group-item list-group-item-action {% if name == list_name %} active {% endif %}">
@@ -35,7 +35,7 @@
         
     </div>
 
-    <div class="col-7 offset-1 mt-2">
+    <div class="col-7 mt-2">
         <!-- Listname and Export Button -->        
             <div class="form-group">
                 <div class="row">

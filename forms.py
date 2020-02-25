@@ -37,14 +37,15 @@ class JoinForm(FlaskForm):
     def validate(self):
         #this should prob be done using regexes at some point
         # if it aint broke...
-        for c in self.username.data:
+        username = self.username.data.lower()
+        for c in username:
             if c != "." and not c.isalnum():
                 return False
 
-        if not self.dm.check_user(self.username.data):
+        if not self.dm.check_user(username):
             return False
 
-        db.add_list(self.list_name, self.username.data)
+        db.add_list(self.list_name, username)
         return True
 
 class DeployForm(FlaskForm):
@@ -105,3 +106,4 @@ class DeployForm(FlaskForm):
         options = dumps({'vapp_name': self.vapp.data, 'list': self.deploy_list.data})
         db.edit_task(self.deploy_time.data, 0, self.name.data, options)
         return error
+        
